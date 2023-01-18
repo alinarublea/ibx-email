@@ -1,7 +1,7 @@
 import { decorateButtons, decorateBlocks, decorateSections } from "../../scripts/lib-franklin.js";
 import { toMjml } from "../../scripts/scripts.js";
 
-export default async function decorate(block) {
+export default async function decorate(block, { fetch }) {
     const contentClasses = { 
         wrapperClass: 'mj-header-wrapper',
         sectionClass: 'mj-header-section',

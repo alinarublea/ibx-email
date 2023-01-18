@@ -2,7 +2,8 @@ import fetch from 'node-fetch';
 import jsdom from 'jsdom';
 import less from 'less';
 import mjml from 'mjml';
-import { decorateMain, toMjml, init as initLibFranklin } from '../../../../scripts/functions.js';
+import { init as initLibFranklin } from '../../../../scripts/lib-franklin.js';
+import { decorateMain, mjml2html, init as initScripts } from '../../../../scripts/scripts.js';
 
 async function render(base, url) {
     const resp = await fetch(url);
@@ -22,12 +23,14 @@ async function render(base, url) {
     // franklin
     const main = dom.window.document.querySelector('main');
     initLibFranklin(dom.window);
+    initScripts(dom.window);
     decorateMain(main);
-    return { statusCode: 200, body: await toMjml(main) };
+
+    return { statusCode: 200, body: await mjml2html(main) };
 }
 
 export async function main(params) {
-    const url =  params['__ow_path'] ? params['__ow_path'].substring(1) : 'main--hlx-email--buuhuu.hlx.live';
-    const [base] = url.split('/');
-    return render(`https://${base}`, `https://${url}`);
+    const path =  params['__ow_path'] ? params['__ow_path'].substring(1) : '';
+    const host = `${params['branch'] || 'main'}--ibx-email--buuhuu.hlx.${params['preview'] ? 'page' : 'live'}`;
+    return render(`https://${host}`, `https://${host}/${path}`);
 }

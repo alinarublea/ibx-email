@@ -251,7 +251,7 @@ export function decorateDefaultContent(wrapper, { textClass = '', headingClass =
         const [,type] = link.classList;
         return `${mjml}
                 <mj-button mj-class="mj-button-${type} ${buttonClass || ''}" href="${link.href}">
-                  ${link.innerText}
+                  ${link.textContent}
                 </mj-button>
             `;
       }
@@ -320,8 +320,7 @@ export async function mjml2html(main) {
   const [body, head] = await toMjml(main)
   const mjmlStyles = await styles$;
 
-  mjml = mjmlTemplate(mjmlStyles + head, body, [...document.body.classList]);
-  console.debug(mjml);
+  const mjml = mjmlTemplate(mjmlStyles + head, body, [...document.body.classList]);
 
   const mjml2html = await mjml2html$;
   const { html } = mjml2html(mjml, { minify: true });
