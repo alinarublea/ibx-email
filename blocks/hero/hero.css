@@ -1,0 +1,17 @@
+.mj-hero-image {
+    padding: 24px 0;
+}
+
+.mj-hero-divider {
+    border-width: 1px;
+    border-color: #ddd;
+    border-style: solid;
+}
+
+.mj-hero-text {
+    padding: 28px 0;
+    color: #008ccc;
+    line-height:1.3;
+    font-size: 16px;
+    align: center;
+}

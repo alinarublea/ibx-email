@@ -11,7 +11,7 @@
  */
 mj-all {
     padding: 0;
-    font-family: 'Adobe Clean', Arial, sans-serif;
+    font-family: alright_sanslight,Open Sans,Helvetica,sans-serif;
     font-size: 13px;
     font-weight: 300;
     line-height: 20px;
@@ -22,29 +22,42 @@ mj-section {
 }
 
 mj-body {
-    background-color: #eee;
+    background-color: #fff;
+    width: 640px;
 }
 
 mj-button {
-    background-color: black;
-    border-radius: 0;
-    font-size: 11px;
-    font-weight: 700;
-    line-height: 13.2px;
-    text-transform: uppercase;
-    width: 180px;
-    padding-top: 25px;
+    background-color: #f96625;
+    border-radius: 24px;
+    font-family: Helvetica,Arial,sans-serif;
+    font-size: 18px;
+    font-weight: 300;
+    padding: 24px 55px;
+    inner-padding: 10px 48px;
+    text-decoration: underline;
+    align: left;
 }
 
-mj-wrapper {
-    padding-bottom: 40px;
+mj-text {
+    font-size: 17px;
+    line-height: 30px;
+    padding: 0 55px;
 }
 
 .mj-content-column {
-    padding: 0 20px;
+    padding-bottom: 24px;
 }
 
-.aem-sites-sprint-summary .mj-highlight {
-    background-color: #bfbfbf;
-    padding: 0 10px;
+.mj-align-center {
+    align: center;
+}
+
+.mj-h1 {
+    padding-top: 28px;
+    padding-bottom: 28px;
+}
+
+.mj-h2 {
+    padding-top: 38px;
+    padding-bottom: 24px;
 }

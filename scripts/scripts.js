@@ -85,7 +85,7 @@ async function loadBlock(block) {
     } catch (error) {
       // eslint-disable-next-line no-console
       console.log(`failed to load block ${blockName}`, error);
-      decorator = async () => Promise.reject();
+      decorator = async () => Promise.reject(error);
     }
     block.setAttribute('data-block-status', 'loaded');
   } else {
@@ -239,7 +239,7 @@ function reduceMjml(mjml) {
   );
 }
 
-export function decorateDefaultContent(wrapper, { textClass = '', buttonClass = '', imageClass = '' } = {}) {
+export function decorateDefaultContent(wrapper, { textClass = '', headingClass = '', buttonClass = '', imageClass = '' } = {}) {
   return [...wrapper.children]
     .reduce((mjml, par) => {
       const img = par.querySelector('img');
@@ -247,12 +247,16 @@ export function decorateDefaultContent(wrapper, { textClass = '', buttonClass = 
         return `${mjml}<mj-image mj-class="${imageClass}" src="${img.src}" />`;
       }
       if (par.matches('.button-container')) {
-        const link = par.querySelector(':scope > a');
+        const link = par.querySelector(':scope a');
         return `${mjml}
                 <mj-button mj-class="${buttonClass}" href="${link.href}">
                   ${link.innerText}
                 </mj-button>
             `;
+      }
+      if (par.matches('h1, h2, h3, h4, h5, h6')) {
+        // trailing space to force the text not to be merged with the next one if any (see below);
+        return `${mjml}<mj-text mj-class="mj-${par.tagName.toLowerCase()} ${headingClass}">${par.outerHTML}</mj-text> `;
       }
       if (mjml.endsWith('</mj-text>')) {
         return `${mjml.substring(0, mjml.length - 10)}${par.outerHTML}</mj-text>`;
@@ -293,7 +297,9 @@ export async function toMjml(main) {
         })));
 
       return [
-        `<mj-wrapper>${sectionBody}</mj-wrapper>`,
+        `<mj-wrapper>
+          ${sectionBody}
+        </mj-wrapper>`,
         sectionHead
       ];
     }));
@@ -314,13 +320,24 @@ export async function toMjml(main) {
   return html;
 }
 
+function buildHeroBlock(main) {
+  const firstSection = main.querySelector(':scope > div');
+  const picture = firstSection && firstSection.querySelector('picture');
+  const text = firstSection && firstSection.querySelector(':scope > :nth-child(2)');
+  if (picture && text) {
+    const section = document.createElement('div');
+    section.append(buildBlock('hero', { elems: [picture, text] }));
+    firstSection.replaceWith(section);
+  }
+}
+
 /**
  * Builds all synthetic blocks in a container element.
  * @param {Element} main The container element
  */
 function buildAutoBlocks(main) {
   try {
-
+    buildHeroBlock(main);
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Auto Blocking failed', error);

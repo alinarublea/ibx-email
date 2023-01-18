@@ -7,7 +7,7 @@ async function loadPage() {
   initLibFranklin(window);
   initScripts(window);
 
-  const main = doc.querySelector('main');
+  const main = document.querySelector('main');
   decorateMain(main);
   await waitForLCP([]);
 

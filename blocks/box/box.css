@@ -1,0 +1,23 @@
+.mj-box-section {
+    padding:36px 10px;
+    border: 1px solid #008ccc;
+}
+
+.mj-box-heading {
+    padding-top: 0;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.mj-box-text {
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.mj-box-button {
+    padding-bottom: 0;
+    padding-left: 0;
+    padding-right: 0;
+    font-size: 16px;
+    inner-padding: 8px 30px;
+}
