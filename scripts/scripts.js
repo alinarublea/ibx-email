@@ -244,40 +244,46 @@ export function decorateDefaultContent(wrapper, { textClass = '', headingClass =
     .reduce((mjml, par) => {
       const img = par.querySelector('img');
       if (img) {
-        return `${mjml}<mj-image mj-class="${imageClass}" src="${img.src}" />`;
+        return `${mjml}<mj-image mj-class="${imageClass || ''}" src="${img.src}" />`;
       }
       if (par.matches('.button-container')) {
         const link = par.querySelector(':scope a');
+        const [,type] = link.classList;
         return `${mjml}
-                <mj-button mj-class="${buttonClass}" href="${link.href}">
+                <mj-button mj-class="mj-button-${type} ${buttonClass || ''}" href="${link.href}">
                   ${link.innerText}
                 </mj-button>
             `;
       }
       if (par.matches('h1, h2, h3, h4, h5, h6')) {
         // trailing space to force the text not to be merged with the next one if any (see below);
-        return `${mjml}<mj-text mj-class="mj-${par.tagName.toLowerCase()} ${headingClass}">${par.outerHTML}</mj-text> `;
+        return `${mjml}<mj-text mj-class="mj-${par.tagName.toLowerCase()} ${headingClass || ''}">${par.outerHTML}</mj-text> `;
       }
       if (mjml.endsWith('</mj-text>')) {
         return `${mjml.substring(0, mjml.length - 10)}${par.outerHTML}</mj-text>`;
       }
-      return `${mjml}<mj-text mj-class="${textClass}">${par.outerHTML}</mj-text>`;
+      return `${mjml}<mj-text mj-class="${textClass || ''}">${par.outerHTML}</mj-text>`;
     }, '');
 }
 
-export async function toMjml(main) {
-  const mjml2html$ = loadMjml();
-  const main$ = Promise.all([...main.querySelectorAll(':scope > .section')]
+export async function toMjml(main, contentClasses = { 
+  wrapperClass: '',
+  sectionClass: 'mj-content-section',
+  columnClass: 'mj-content-column',
+  textClass: 'mj-content-text', 
+  imageClass: 'mj-content-image', 
+  buttonClass: 'mj-content-button', 
+  headingClass: 'mj-content-heading' 
+}) {
+  main = await Promise.all([...main.querySelectorAll(':scope > .section')]
     .map(async (section) => {
       const [sectionBody, sectionHead] = reduceMjml(await Promise.all([...section.children]
         .map(async (wrapper) => {
           if (wrapper.matches('.default-content-wrapper')) {
             return Promise.resolve([`
-            <mj-section mj-class="mj-content-section">
-              <mj-column mj-class="mj-content-column">
-                ${decorateDefaultContent(wrapper,
-              { textClass: 'mj-content-text', imageClass: 'mj-content-image', buttonClass: 'mj-content-button' }
-            )}
+            <mj-section mj-class="${contentClasses.sectionClass || ''}">
+              <mj-column mj-class="${contentClasses.columnClass || ''}">
+                ${decorateDefaultContent(wrapper, contentClasses)}
               </mj-column>
             </mj-section>
           `]);
@@ -288,6 +294,7 @@ export async function toMjml(main) {
             const decorated$ = decorator(block);
             const styles$ = loadStyles(decorator);
             return Promise.all([decorated$, styles$])
+              .then(([body, head]) => body instanceof Array ? [body[0], body[1] + head] : [body, head])
               .catch((err) => {
                 console.error(err);
                 return [];
@@ -297,21 +304,23 @@ export async function toMjml(main) {
         })));
 
       return [
-        `<mj-wrapper>
-          ${sectionBody}
-        </mj-wrapper>`,
+        sectionBody.indexOf('<mj-wrapper') < 0
+          ? `<mj-wrapper mj-class="${contentClasses.wrapperClass || ''}">${sectionBody}</mj-wrapper>`
+          : sectionBody,
         sectionHead
       ];
     }));
-  const styles$ = loadStyles({
-    styles: ['/styles/email-styles.css'],
-    inlineStyles: ['/styles/email-inline-styles.css'],
-  });
+  
+  return reduceMjml(main);
+}
 
+export async function mjml2html(main) {
+  const mjml2html$ = loadMjml();
+  const styles$ = loadStyles({ styles: ['/styles/email-styles.css'], inlineStyles: ['/styles/email-inline-styles.css'] });
+  const [body, head] = await toMjml(main)
   const mjmlStyles = await styles$;
-  const [body, head] = reduceMjml(await main$);
 
-  const mjml = mjmlTemplate(mjmlStyles + head, body, [...document.body.classList]);
+  mjml = mjmlTemplate(mjmlStyles + head, body, [...document.body.classList]);
   console.debug(mjml);
 
   const mjml2html = await mjml2html$;
@@ -331,6 +340,20 @@ function buildHeroBlock(main) {
   }
 }
 
+function buildHeaderBlock(main) {
+  const section = document.createElement('div');
+  section.append(buildBlock('header', { elems: [] }));
+  if (window.location.pathname === '/header') main.innerHTML = section.outerHTML;
+  else main.prepend(section);
+}
+
+function buildFooterBlock(main) {
+  const section = document.createElement('div');
+  section.append(buildBlock('footer', { elems: [] }));
+  if (window.location.pathname === '/footer') main.innerHTML = section.outerHTML;
+  else main.append(section);
+}
+
 /**
  * Builds all synthetic blocks in a container element.
  * @param {Element} main The container element
@@ -338,6 +361,8 @@ function buildHeroBlock(main) {
 function buildAutoBlocks(main) {
   try {
     buildHeroBlock(main);
+    if (window.location.pathname !== '/footer') buildHeaderBlock(main);
+    if (window.location.pathname !== '/header') buildFooterBlock(main);
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Auto Blocking failed', error);

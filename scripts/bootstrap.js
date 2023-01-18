@@ -1,5 +1,5 @@
 import { waitForLCP, init as initLibFranklin } from './lib-franklin.js';
-import { decorateMain, toMjml, init as initScripts } from './scripts.js';
+import { decorateMain, mjml2html, init as initScripts } from './scripts.js';
 
 window.hlx = window.hlx || {};
 
@@ -11,7 +11,7 @@ async function loadPage() {
   decorateMain(main);
   await waitForLCP([]);
 
-  const html = await toMjml(main);
+  const html = await mjml2html(main);
 
   let frame = document.getElementById('__emailFrame');
   if (!frame) {

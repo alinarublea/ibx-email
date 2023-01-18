@@ -12,9 +12,7 @@
 mj-all {
     padding: 0;
     font-family: alright_sanslight,Open Sans,Helvetica,sans-serif;
-    font-size: 13px;
     font-weight: 300;
-    line-height: 20px;
 }
 
 mj-section {
@@ -26,7 +24,7 @@ mj-body {
     width: 640px;
 }
 
-mj-button {
+.mj-button-primary {
     background-color: #f96625;
     border-radius: 24px;
     font-family: Helvetica,Arial,sans-serif;
@@ -35,6 +33,15 @@ mj-button {
     padding: 24px 55px;
     inner-padding: 10px 48px;
     text-decoration: underline;
+    align: left;
+}
+
+.mj-button-plain {
+    background-color: none;
+    color: #000;
+    text-decoration: underline;
+    padding: 0;
+    inner-padding: 0;
     align: left;
 }
 

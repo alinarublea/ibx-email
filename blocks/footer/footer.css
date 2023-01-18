@@ -1,0 +1,23 @@
+.mj-footer-wrapper {
+    padding: 20px 30px 40px 30px;
+    background-color: #ccc;
+}
+
+.mj-footer-text {
+    font-size: 12px;
+    line-height: 1.5;
+    color: #fff;
+    padding: 0;
+    css-class: 'footer-text';
+}
+
+.mj-footer-button {
+    font-size: 12px;
+    line-height: 1.5;
+    color: #fff;
+    padding: 0 0 14px 0;
+}
+
+.footer-text p {
+    margin: 0 0 14px 0;
+}
