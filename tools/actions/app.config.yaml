@@ -14,3 +14,12 @@ application:
             annotations:
               require-adobe-auth: false
               final: true
+          acc:
+            function: acc/index.js
+            web: 'yes'
+            runtime: 'nodejs:16'
+            inputs:
+              LOG_LEVEL: debug
+            annotations:
+              require-adobe-auth: false
+              final: true
