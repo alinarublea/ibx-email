@@ -10,19 +10,24 @@ async function list(indexUrl) {
     }
 
     const { data } = await resp.json();
-    const entities = data.map(({ path, title, lastModified }) => ({
-        links: [
-            { rel: ['content'], href: `${path}` }
-        ],
-        class: "content/page",
-        properties: {
-            'dc:title': title,
-            'name': path.split('/').pop() || 'index',
-            'cq:acApproved': true,
-            'cq:lastModified': new Date(lastModified * 1000).toISOString(),
-            'cq:acLinks': []
-        }
-    }));
+    const entities = data
+        .filter(({ path }) => {
+            // only include documents that are in a folder (not from top level)
+            return path.split('/').length > 2;
+        })
+        .map(({ path, title, lastModified }) => ({
+            links: [
+                { rel: ['content'], href: `${path}` }
+            ],
+            class: "content/page",
+            properties: {
+                'dc:title': title,
+                'name': path.split('/').pop() || 'index',
+                'cq:acApproved': true,
+                'cq:lastModified': new Date(lastModified * 1000).toISOString(),
+                'cq:acLinks': []
+            }
+        }));
 
     return { statusCode: 200, body: { entities }};
 }
@@ -80,28 +85,50 @@ async function content(indexUrl, path, preview) {
     }
 }
 
-function permalink(permalink) {
-    const path = permalink.substring('/permalink/'.length);
-    const apiHost = process.env['__OW_API_HOST'];
+function permalink(permalink, preview) {
     const namespace = process.env['__OW_NAMESPACE'];
+    let path = permalink.substring('/permalink/'.length);
+    
+    if (preview) {
+        path = 'preview/' + path;
+    } else if (!preview && typeof preview !== 'undefined') {
+        path = 'live/' + path;
+    }
+    
     const location = `https://${namespace}.adobeioruntime.net/api/v1/web/franklin/acc/${path}`;
     return { statusCode: 302, headers: { location } };
 }
 
 export async function main(params) {
     try {
-        const host = `main--ibx-email--buuhuu.hlx.${params['preview'] ? 'page' : 'live'}`;
+        let [path] = params['__ow_path'].split('.');
+        let preview = undefined;
+        if (path.indexOf('/preview/') === 0) {
+            live = true;
+            path = path.subject('/preview/'.length);
+        } else if (path.indexOf('/live/') === 0) {
+            preview = false;
+            path = path.subject('/live/'.length);
+        } 
+
+        const host = `main--ibx-email--buuhuu.hlx.${preview ? 'page' : 'live'}`;
+        const indexUrl = `https://${host}/query-index.json`;
 
         if (params['__ow_path'] === '/api/content/sites/campaigns.json') {
-            return list(`https://${host}/query-index.json`);
+            // list pages 
+            return list(indexUrl);
         } else if (params['__ow_path'].endsWith('.campaign.link.json')) {
-            const [path] = params['__ow_path'].split('.');
-            return link(`https://${host}/query-index.json`, path);
+            // return a link json object with a permalink (/permalink/)
+            return link(indexUrl, path);
+        } else if (params['__ow_path'].endsWith('.campaign.unlink.json')) {
+            // noop
+            return { statusCode: 200 };
         } else if (params['__ow_path'].endsWith('.campaign.content.json')) {
-            const [path] = params['__ow_path'].split('.');
-            return content(`https://${host}/query-index.json`, path, params['preview']);
+            // invoke franklin/ssr
+            return content(indexUrl, path, preview);
         } else if (params['__ow_path'].indexOf('/permalink/') === 0) {
-            return permalink(params['__ow_path']);
+            // redirect from the /permalink/ to the actual path
+            return permalink(path, preview);
         }
 
         return { statusCode: 404, body: 'unknown path: ' + params['__ow_path'] };
