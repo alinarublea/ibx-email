@@ -317,8 +317,13 @@ export async function toMjml(main, contentClasses = {
 export async function mjml2html(main) {
   const mjml2html$ = loadMjml();
   const styles$ = loadStyles({ styles: ['/styles/email-styles.css'], inlineStyles: ['/styles/email-inline-styles.css'] });
-  const [body, head] = await toMjml(main)
   const mjmlStyles = await styles$;
+  let [body, head] = await toMjml(main)
+  
+  const pretextMeta = document.querySelector('meta[name="preview-text"]');
+  if (pretextMeta) {
+    body = `<mj-raw><span class="preview-text">${pretextMeta.content}</span></mj-raw>` + body;
+  }
 
   const mjml = mjmlTemplate(mjmlStyles + head, body, [...document.body.classList]);
 
