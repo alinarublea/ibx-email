@@ -9,6 +9,8 @@ import {
 
 let window = {};
 let document = {};
+let segmentCode = 'default';
+let segmentConditions = false;
 const thridPartyScripts = {};
 
 const mjmlTemplate = (mjmlHead, mjmlBody, bodyCssClasses = []) => `
@@ -230,16 +232,19 @@ async function loadStyles({ styles, inlineStyles }) {
 }
 
 function reduceMjml(mjml) {
-  return mjml.reduce(
-    ([body, head], [sectionBody, sectioHead]) => [
-      body + (sectionBody || ''),
-      head + (sectioHead || ''),
-    ],
-    ['', ''],
-  );
+  return mjml
+    .reduce(
+      ([body, head], [sectionBody, sectioHead]) => [
+        body + (sectionBody || ''),
+        head + (sectioHead || ''),
+      ],
+      ['', ''],
+    );
 }
 
-export function decorateDefaultContent(wrapper, { textClass = '', headingClass = '', buttonClass = '', imageClass = '' } = {}) {
+export function decorateDefaultContent(wrapper, {
+  textClass = '', headingClass = '', buttonClass = '', imageClass = '',
+} = {}) {
   return [...wrapper.children]
     .reduce((mjml, par) => {
       const img = par.querySelector('img');
@@ -248,7 +253,7 @@ export function decorateDefaultContent(wrapper, { textClass = '', headingClass =
       }
       if (par.matches('.button-container')) {
         const link = par.querySelector(':scope a');
-        const [,type] = link.classList;
+        const [, type] = link.classList;
         return `${mjml}
                 <mj-button mj-class="mj-button-${type} ${buttonClass || ''}" href="${link.href}">
                   ${link.textContent}
@@ -266,18 +271,18 @@ export function decorateDefaultContent(wrapper, { textClass = '', headingClass =
     }, '');
 }
 
-export async function toMjml(main, contentClasses = { 
+export async function toMjml(main, contentClasses = {
   wrapperClass: '',
   sectionClass: 'mj-content-section',
   columnClass: 'mj-content-column',
-  textClass: 'mj-content-text', 
-  imageClass: 'mj-content-image', 
-  buttonClass: 'mj-content-button', 
-  headingClass: 'mj-content-heading' 
+  textClass: 'mj-content-text',
+  imageClass: 'mj-content-image',
+  buttonClass: 'mj-content-button',
+  headingClass: 'mj-content-heading',
 }) {
   main = await Promise.all([...main.querySelectorAll(':scope > .section')]
     .map(async (section) => {
-      const [sectionBody, sectionHead] = reduceMjml(await Promise.all([...section.children]
+      let [sectionBody, sectionHead] = reduceMjml(await Promise.all([...section.children]
         .map(async (wrapper) => {
           if (wrapper.matches('.default-content-wrapper')) {
             return Promise.resolve([`
@@ -294,7 +299,7 @@ export async function toMjml(main, contentClasses = {
             const decorated$ = decorator(block);
             const styles$ = loadStyles(decorator);
             return Promise.all([decorated$, styles$])
-              .then(([body, head]) => body instanceof Array ? [body[0], body[1] + head] : [body, head])
+              .then(([body, head]) => (body instanceof Array ? [body[0], body[1] + head] : [body, head]))
               .catch((err) => {
                 console.error(err);
                 return [];
@@ -303,14 +308,40 @@ export async function toMjml(main, contentClasses = {
           return Promise.resolve([]);
         })));
 
-      return [
-        sectionBody.indexOf('<mj-wrapper') < 0
-          ? `<mj-wrapper mj-class="${contentClasses.wrapperClass || ''}">${sectionBody}</mj-wrapper>`
-          : sectionBody,
-        sectionHead
-      ];
+      sectionBody = sectionBody.indexOf('<mj-wrapper') < 0
+        ? `<mj-wrapper mj-class="${contentClasses.wrapperClass || ''}">${sectionBody}</mj-wrapper>`
+        : sectionBody;
+
+      return [section, sectionBody, sectionHead];
     }));
-  
+
+  // segmentation
+  for (let i = 0, inConditionalBlock = false; i < main.length; i++) {
+    let [section, sectionBody, sectioHead] = main[i];
+
+    if (section.dataset.segment) {
+      if (!segmentConditions) {
+        if (segmentCode !== section.dataset.segment) {
+          sectionBody = sectioHead = '';
+        }
+      } else {
+        const stmt = inConditionalBlock ? '} else if ' : 'if ';
+        sectionBody = `<mj-raw><% ${stmt} ( targetData.segmentCode == '${section.dataset.segment}' ) {%></mj-raw>${sectionBody}`;
+      }
+      inConditionalBlock = true;
+    } else if (inConditionalBlock) {
+      if (!segmentConditions) {
+        if (segmentCode !== 'default') {
+          sectionBody = sectioHead = '';
+        }
+      } else {
+        sectionBody = `<mj-raw><% } else { %></mj-raw>${sectionBody}<mj-raw><% } %></mj-raw>`;
+      }
+      inConditionalBlock = false;
+    }
+    main[i] = [sectionBody, sectioHead];
+  }
+
   return reduceMjml(main);
 }
 
@@ -318,11 +349,11 @@ export async function mjml2html(main) {
   const mjml2html$ = loadMjml();
   const styles$ = loadStyles({ styles: ['/styles/email-styles.css'], inlineStyles: ['/styles/email-inline-styles.css'] });
   const mjmlStyles = await styles$;
-  let [body, head] = await toMjml(main)
-  
+  let [body, head] = await toMjml(main);
+
   const pretextMeta = document.querySelector('meta[name="preview-text"]');
   if (pretextMeta) {
-    body = `<mj-raw><span class="preview-text">${pretextMeta.content}</span></mj-raw>` + body;
+    body = `<mj-raw><span class="preview-text">${pretextMeta.content}</span></mj-raw>${body}`;
   }
 
   const mjml = mjmlTemplate(mjmlStyles + head, body, [...document.body.classList]);
@@ -383,7 +414,7 @@ function decoratePersonalization(main) {
     const transform = (expr) => {
       const nlExpr = `<%= ${expr} %>`;
       return `<span data-nl-expr="${expr}">${nlExpr}</span>`;
-    }
+    };
 
     // eslint-disable-next-line no-cond-assign
     while (match = text.match(/[a-zA-Z0-9]+\.[a-zA-Z0-9.]+/)) {
@@ -425,4 +456,11 @@ export function decorateMain(main) {
 export function init(w) {
   window = w;
   document = w.document;
+  try {
+    const { searchParams } = new URL(window.location.href);
+    segmentCode = searchParams.get('segmentCode') || 'default';
+    segmentConditions = searchParams.get('segmentConditions') !== null;
+  } catch (err) {
+    console.log(`could not set segmentCode, falling back to 'default': ${err.message}`);
+  }
 }
