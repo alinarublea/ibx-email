@@ -280,9 +280,9 @@ export async function toMjml(main, contentClasses = {
   buttonClass: 'mj-content-button',
   headingClass: 'mj-content-heading',
 }) {
-  main = await Promise.all([...main.querySelectorAll(':scope > .section')]
+  const mjMain = await Promise.all([...main.querySelectorAll(':scope > .section')]
     .map(async (section) => {
-      let [sectionBody, sectionHead] = reduceMjml(await Promise.all([...section.children]
+      const [sectionBody, sectionHead] = reduceMjml(await Promise.all([...section.children]
         .map(async (wrapper) => {
           if (wrapper.matches('.default-content-wrapper')) {
             return Promise.resolve([`
@@ -299,7 +299,9 @@ export async function toMjml(main, contentClasses = {
             const decorated$ = decorator(block);
             const styles$ = loadStyles(decorator);
             return Promise.all([decorated$, styles$])
-              .then(([body, head]) => (body instanceof Array ? [body[0], body[1] + head] : [body, head]))
+              .then(([body, head]) => (body instanceof Array
+                ? [body[0], body[1] + head]
+                : [body, head]))
               .catch((err) => {
                 console.error(err);
                 return [];
@@ -307,22 +309,25 @@ export async function toMjml(main, contentClasses = {
           }
           return Promise.resolve([]);
         })));
-
-      sectionBody = sectionBody.indexOf('<mj-wrapper') < 0
-        ? `<mj-wrapper mj-class="${contentClasses.wrapperClass || ''}">${sectionBody}</mj-wrapper>`
-        : sectionBody;
-
-      return [section, sectionBody, sectionHead];
+      return [
+        section,
+        sectionBody.indexOf('<mj-wrapper') < 0
+          ? `<mj-wrapper mj-class="${contentClasses.wrapperClass || ''}">${sectionBody}</mj-wrapper>`
+          : sectionBody,
+        sectionHead,
+      ];
     }));
 
   // segmentation
-  for (let i = 0, inConditionalBlock = false; i < main.length; i++) {
-    let [section, sectionBody, sectioHead] = main[i];
+  for (let i = 0, inConditionalBlock = false; i < mjMain.length; i += 1) {
+    // eslint-disable-next-line prefer-const
+    let [section, sectionBody, sectioHead] = mjMain[i];
 
     if (section.dataset.segment) {
       if (!segmentConditions) {
         if (segmentCode !== section.dataset.segment) {
-          sectionBody = sectioHead = '';
+          sectionBody = '';
+          sectioHead = '';
         }
       } else {
         const stmt = inConditionalBlock ? '} else if ' : 'if ';
@@ -332,23 +337,23 @@ export async function toMjml(main, contentClasses = {
     } else if (inConditionalBlock) {
       if (!segmentConditions) {
         if (segmentCode !== 'default') {
-          sectionBody = sectioHead = '';
+          sectionBody = '';
+          sectioHead = '';
         }
       } else {
         sectionBody = `<mj-raw><% } else { %></mj-raw>${sectionBody}<mj-raw><% } %></mj-raw>`;
       }
       inConditionalBlock = false;
     }
-    main[i] = [sectionBody, sectioHead];
+    mjMain[i] = [sectionBody, sectioHead];
   }
 
-  return reduceMjml(main);
+  return reduceMjml(mjMain);
 }
 
 export async function mjml2html(main) {
   const mjml2html$ = loadMjml();
   const styles$ = loadStyles({ styles: ['/styles/email-styles.css'], inlineStyles: ['/styles/email-inline-styles.css'] });
-  const mjmlStyles = await styles$;
   let [body, head] = await toMjml(main);
 
   const pretextMeta = document.querySelector('meta[name="preview-text"]');
@@ -356,10 +361,12 @@ export async function mjml2html(main) {
     body = `<mj-raw><span class="preview-text">${pretextMeta.content}</span></mj-raw>${body}`;
   }
 
-  const mjml = mjmlTemplate(mjmlStyles + head, body, [...document.body.classList]);
+  const mjmlStyles = await styles$;
+  head = mjmlStyles + head;
 
-  const mjml2html = await mjml2html$;
-  const { html } = mjml2html(mjml, { minify: true });
+  const mjml = mjmlTemplate(head, body, [...document.body.classList]);
+
+  const { html } = (await mjml2html$)(mjml, { minify: true });
 
   return html;
 }
