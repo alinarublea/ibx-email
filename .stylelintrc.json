@@ -6,6 +6,9 @@
       {
         "ignoreSelectors": [
           "/mj-.*/"
+        ],
+        "ignoreProperties": [
+          "mso-hide"
         ]
       }
     ],
