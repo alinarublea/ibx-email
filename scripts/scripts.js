@@ -331,7 +331,7 @@ export async function toMjml(main, contentClasses = {
         }
       } else {
         const stmt = inConditionalBlock ? '} else if ' : 'if ';
-        sectionBody = `<mj-raw><% ${stmt} ( targetData.segmentCode == '${section.dataset.segment}' ) {%></mj-raw>${sectionBody}`;
+        sectionBody = `<mj-raw><% ${stmt} ( targetData.segmentCode == "${section.dataset.segment}" ) { %></mj-raw>${sectionBody}`;
       }
       inConditionalBlock = true;
     } else if (inConditionalBlock) {
@@ -460,13 +460,13 @@ export function decorateMain(main) {
   decoratePersonalization(main);
 }
 
-export function init(w) {
+export function init(w, renderSegmentConditions) {
   window = w;
   document = w.document;
   try {
     const { searchParams } = new URL(window.location.href);
     segmentCode = searchParams.get('segmentCode') || 'default';
-    segmentConditions = searchParams.get('segmentConditions') !== null;
+    segmentConditions = renderSegmentConditions || searchParams.get('segmentConditions') !== null;
   } catch (err) {
     console.log(`could not set segmentCode, falling back to 'default': ${err.message}`);
   }

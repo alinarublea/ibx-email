@@ -66,7 +66,7 @@ async function content(indexUrl, path, preview) {
         blocking: true,
         result: true,
         actionName: 'franklin/ssr', 
-        params: { preview, '__ow_path': path }
+        params: { preview, '__ow_path': path, segmentConditions: true }
     });
 
     if (body) {

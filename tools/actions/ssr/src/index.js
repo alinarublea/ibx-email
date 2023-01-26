@@ -5,7 +5,7 @@ import mjml from 'mjml';
 import { init as initLibFranklin } from '../../../../scripts/lib-franklin.js';
 import { decorateMain, mjml2html, init as initScripts } from '../../../../scripts/scripts.js';
 
-async function render(base, url) {
+async function render(base, url, renderSegmentConditions) {
     const resp = await fetch(url);
 
     if (!resp.ok) {
@@ -23,14 +23,15 @@ async function render(base, url) {
     // franklin
     const main = dom.window.document.querySelector('main');
     initLibFranklin(dom.window);
-    initScripts(dom.window);
+    initScripts(dom.window, renderSegmentConditions);
     decorateMain(main);
 
     return { statusCode: 200, body: await mjml2html(main) };
 }
 
 export async function main(params) {
+    const { segmentConditions } = params;
     const path =  params['__ow_path'] ? params['__ow_path'].substring(1) : '';
     const host = `${params['branch'] || 'main'}--ibx-email--buuhuu.hlx.${params['preview'] ? 'page' : 'live'}`;
-    return render(`https://${host}`, `https://${host}/${path}`);
+    return render(`https://${host}`, `https://${host}/${path}`, typeof segmentConditions !== 'undefined');
 }
