@@ -23,3 +23,12 @@ application:
             annotations:
               require-adobe-auth: false
               final: true
+          ajo:
+            function: ajo/index.js
+            web: 'yes'
+            runtime: 'nodejs:16'
+            inputs:
+              LOG_LEVEL: debug
+            annotations:
+              require-adobe-auth: false
+              final: true
