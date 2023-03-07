@@ -4,6 +4,11 @@ indices:
   default:
     include:
       - /**
+    exclude:
+      - 'drafts/**'
+      - 'images/**'
+      - '/**/header'
+      - '/**/footer'
     target: /query-index.json
     properties:
       lastModified:
