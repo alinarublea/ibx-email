@@ -68,11 +68,39 @@ const copyHtml = () => {
     const iframe = document.getElementById('__emailFrame');
     if (iframe) {
         navigator.clipboard.writeText(iframe.srcdoc).then(() => {
-            const banner = new EmailSidekickBanner('get-html-data');
-            banner.write('HTML copied to clipboard', 5);
         });
     }
 };
+
+const sendHtml = () =>
+{
+  const html = copyHtml();
+  const url = 'https://campeng-mkt-prod1.campaign.adobe.com/nms/amcCreateDelivery.jssp';
+
+  const requestOptions = {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: `template=mail&htmlContent=${html}`,
+    credentials: 'include'
+  };
+
+  window.fetch(url, requestOptions)
+    .then(response => {
+      if (response.ok) {
+        return response.text();
+      } else {
+        throw new Error('Request failed with status: ' + response.status);
+      }
+    })
+    .then(data => {
+      console.log(data); // Process the response data here
+    })
+    .catch(error => {
+      console.error('Error:', error);
+    });
+}
 
 const downloadHtml = () => {
   const iframe = document.getElementById('__emailFrame');
@@ -88,7 +116,7 @@ const downloadHtml = () => {
         .toLowerCase()
         + '.emltpl'
 
-      const eml = to + '\n' 
+      const eml = to + '\n'
         + subject + '\n'
         + 'Content-Type: text/html;charset=utf-8\n'
         + 'X-Unsent: 1'+'\n'
@@ -105,14 +133,14 @@ const downloadHtml = () => {
       fileLink.href = url;
       fileLink.download = fileName;
       fileLink.style.visibility = 'hidden';
-      
+
       fileLink.onclick = () => {
         setTimeout(() => {
           fileLink.remove();
           URL.revokeObjectURL(url);
         })
       }
-      
+
       document.body.appendChild(fileLink);
       fileLink.click();
     }
@@ -121,6 +149,7 @@ const downloadHtml = () => {
 const sk = document.querySelector('helix-sidekick');
 sk.addEventListener('custom:copyHtml', copyHtml);
 sk.addEventListener('custom:downloadHtml', downloadHtml);
+sk.addEventListener('custom:sendHtml', sendHtml);
 
 window.addEventListener('message', ({ data, origin, source }) => {
   if (data === 'mjml2html' && origin.match('localhost(:\\d+)?$|.*\\.hlx\\.(page|live)$')) {
